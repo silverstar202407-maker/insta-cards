@@ -107,6 +107,13 @@ def page(data, rows, pno, ptotal, first, last):
     lf_s = int(min(40, RH * 0.37)); sf_s = int(min(30, RH * 0.27)); vf_s = int(min(46, RH * 0.42))
     subc = YEL if data.get("sub_color", "gray") == "yellow" else GRAY
     d.line([(M, top), (W - M, top)], fill=LINE, width=2)
+    if data.get("oneline"):
+        cr0 = 34 if big else 31
+        mw = W - M - (M + 2 * cr0 + 26)
+        s1 = int(min(38, RH * 0.42))
+        while s1 > 24 and any(d.textlength(r["label"] + "  ", font=serif("Bold", s1)) + d.textlength(r.get("sub", ""), font=serif("SemiBold", s1)) > mw for r in rows):
+            s1 -= 1
+        data["_s1"] = s1
     for i, r in enumerate(rows):
         y = top + i * RH; cy = y + RH / 2
         cr = 34 if big else 31
@@ -123,6 +130,18 @@ def page(data, rows, pno, ptotal, first, last):
             d.text((W - M - vw, cy - vf.size * 0.68), r["value"], font=vf, fill=YEL)
             vw += 24
         maxw = W - M - tx - vw
+        if data.get("oneline") and r.get("sub"):
+            # 한 줄 배치: 흰 label + 노란/회색 sub
+            sep = "  "
+            s0 = data["_s1"]
+            lf1, sf1 = serif("Bold", s0), serif("SemiBold", s0)
+            if d.textlength(r["label"] + sep, font=lf1) + d.textlength(r["sub"], font=sf1) > maxw:
+                overflow.append(r["label"] + " " + r["sub"])
+            ly = cy - s0 * 0.72
+            d.text((tx, ly), r["label"] + sep, font=lf1, fill=WHITE)
+            d.text((tx + d.textlength(r["label"] + sep, font=lf1), ly), r["sub"], font=sf1, fill=subc)
+            d.line([(M, y + RH), (W - M, y + RH)], fill=LINE, width=2)
+            continue
         lf = fit(d, r["label"], lambda s: serif("Bold", s), lf_s, maxw, 26)
         if r.get("sub"):
             sf = fit(d, r["sub"], lambda s: serif("SemiBold", s), sf_s, maxw, 21)
