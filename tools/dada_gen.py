@@ -104,7 +104,7 @@ def page(data, rows, pno, ptotal, first, last):
     RH = min(118, (bottom - top) / max(n, 1)) if first else RH
     has_sub = any(r.get("sub") for r in rows)
     big = RH >= 100
-    lf_s, sf_s, vf_s = (40, 30, 46) if big else (36, 27, 42)
+    lf_s = int(min(40, RH * 0.37)); sf_s = int(min(30, RH * 0.27)); vf_s = int(min(46, RH * 0.42))
     subc = YEL if data.get("sub_color", "gray") == "yellow" else GRAY
     d.line([(M, top), (W - M, top)], fill=LINE, width=2)
     for i, r in enumerate(rows):
