@@ -90,12 +90,18 @@ def page(data, rows, pno, ptotal, first, last):
         center(d, data["title1"], y, f1, WHITE); center(d, data["title2"], y + 92, f2, YEL)
         top = y + 215
     else:
+        # 2장째부터: 머리글+항목 묶음 전체를 세로 가운데 정렬
+        n = len(rows)
+        note_h = 70 if (last and data.get("note")) else 0
+        RH = min(118, (1225 - 160 - note_h) / max(n, 1))
+        block = 90 + n * RH + note_h
+        hy = max(60, (1240 - block) / 2)
         hf = fit(d, data["title1"] + " " + data["title2"], lambda s: serif("Black", s), 44, W - 2 * M - 80, 32)
-        center(d, data["title1"] + " " + data["title2"], 70, hf, YEL)
-        top = 160
+        center(d, data["title1"] + " " + data["title2"], hy, hf, YEL)
+        top = hy + 90
     bottom = 1180 if (last and data.get("note")) else 1225
     n = len(rows)
-    RH = min(118, (bottom - top) / max(n, 1))
+    RH = min(118, (bottom - top) / max(n, 1)) if first else RH
     has_sub = any(r.get("sub") for r in rows)
     big = RH >= 100
     lf_s, sf_s, vf_s = (40, 30, 46) if big else (36, 27, 42)
