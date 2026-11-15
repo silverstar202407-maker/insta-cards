@@ -44,6 +44,19 @@ FONTDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
 ISFJ_ACCENTS = ["#5E7D4E", "#B0603A", "#4F6D8A", "#8A5A78", "#8E6B1F", "#3F7E78", "#9A4E4E"]  # 세이지·테라코타·더스티블루·모브·머스터드·틸·로즈브라운
 
 
+DADA_NEON = ["#E8FF3A", "#FF4FB4", "#3DF2FF", "#7CFF4F", "#FF9A3C", "#C77DFF", "#FFE14D"]  # 네온 옐로·핑크·시안·그린·오렌지·퍼플·골드
+
+
+def dada_accent(out):
+    """다다언니: dada/YYYY-MM-DD_H 폴더 이름으로 게시물마다 형광 강조색을 돌린다."""
+    import re, datetime as _dt
+    m = re.search(r"(\d{4}-\d{2}-\d{2})_(\d+)", os.path.abspath(out))
+    if not m:
+        return None
+    n = (_dt.date.fromisoformat(m.group(1)) - _dt.date(2026, 11, 15)).days * 5 + [7, 13, 16, 20, 24].index(int(m.group(2))) if int(m.group(2)) in (7, 13, 16, 20, 24) else 0
+    return DADA_NEON[n % len(DADA_NEON)]
+
+
 def apply_theme(name, accent=None):
     """theme: "dada"(기본, 검정·노랑·명조) / "isfj"(소박한 잇프제: 크림·갈색·세이지, 고운바탕 제목 + 고딕 본문)"""
     global BG, WHITE, YEL, GRAY, LINE, CIRCLE, serif, HANDLE, PILL_A, PILL_B_FG
@@ -59,6 +72,8 @@ def apply_theme(name, accent=None):
                 return ImageFont.truetype(title, s)
             return ImageFont.truetype(NOTO + f"NotoSansCJK-{m.get(w, w)}.ttc", s, index=1)
         serif = _isfj
+    elif accent:
+        YEL = accent
 def sans(w, s): return ImageFont.truetype(NOTO + f"NotoSansCJK-{w}.ttc", s, index=1)
 
 
@@ -216,7 +231,9 @@ def page(data, rows, pno, ptotal, first, last):
 
 def main(src, out):
     data = json.load(open(src, encoding="utf-8"))
-    apply_theme(data.get("theme", "dada"), data.get("accent"))
+    th = data.get("theme", "dada")
+    acc = data.get("accent") or (dada_accent(out) if th == "dada" and "/dada/" in os.path.abspath(out) + "/" else None)
+    apply_theme(th, acc)
     rows = data["rows"]
     per1 = data.get("per_page") or (9 if len(rows) <= 9 else 7)
     per = 9
