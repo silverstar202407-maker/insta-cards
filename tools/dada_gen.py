@@ -77,8 +77,16 @@ def page(data, rows, pno, ptotal, first, last):
     if ptotal > 1:
         pf = sans("Regular", 26); t = f"{pno}/{ptotal}"
         d.text((W - M - d.textlength(t, font=pf), 40), t, font=pf, fill=GRAY)
+    n = len(rows)
+    note_h = 70 if (last and data.get("note")) else 0
+    vs = bool(data.get("vs"))
+    cap = 84 if (data.get("oneline") or vs) else 118
+    hdr_vs = 70 if vs else 0
     if first:
-        y = 70
+        head = (75 if data.get("tag") else 15) + 215 + hdr_vs
+        RH = min(cap, (1225 - 70 - head - note_h) / max(n, 1))
+        block = head + n * RH + note_h
+        y = max(50, (1245 - block) / 2)
         if data.get("tag"):
             tf = serif("SemiBold", 26); tw = d.textlength(data["tag"], font=tf) + 60
             d.rounded_rectangle([(W - tw) / 2, y, (W + tw) / 2, y + 50], radius=25, outline=YEL, width=2)
@@ -88,20 +96,25 @@ def page(data, rows, pno, ptotal, first, last):
         f1 = fit(d, data["title1"], lambda s: serif("Black", s), 70, W - 2 * M, 52)
         f2 = fit(d, data["title2"], lambda s: serif("Black", s), 70, W - 2 * M, 52)
         center(d, data["title1"], y, f1, WHITE); center(d, data["title2"], y + 92, f2, YEL)
-        top = y + 215
+        top = y + 215 + hdr_vs
     else:
         # 2장째부터: 머리글+항목 묶음 전체를 세로 가운데 정렬
-        n = len(rows)
-        note_h = 70 if (last and data.get("note")) else 0
-        RH = min(118, (1225 - 160 - note_h) / max(n, 1))
-        block = 90 + n * RH + note_h
+        RH = min(cap, (1225 - 160 - hdr_vs - note_h) / max(n, 1))
+        block = 90 + hdr_vs + n * RH + note_h
         hy = max(60, (1240 - block) / 2)
         hf = fit(d, data["title1"] + " " + data["title2"], lambda s: serif("Black", s), 44, W - 2 * M - 80, 32)
         center(d, data["title1"] + " " + data["title2"], hy, hf, YEL)
-        top = hy + 90
+        top = hy + 90 + hdr_vs
+    if vs:
+        # A | B 머리 칸
+        hw = (W - 2 * M) / 2
+        pf = serif("Black", 34)
+        for i, (lab, col, fg) in enumerate([("A", "#2a2a2a", WHITE), ("B", YEL, "#1a1400")]):
+            cx = M + hw * i + hw / 2
+            d.rounded_rectangle([cx - 70, top - 62, cx + 70, top - 14], radius=24, fill=col)
+            d.text((cx - d.textlength(lab, font=pf) / 2, top - 61), lab, font=pf, fill=fg)
+        d.line([(W / 2, top - 62), (W / 2, top + n * RH)], fill=LINE, width=2)
     bottom = 1180 if (last and data.get("note")) else 1225
-    n = len(rows)
-    RH = min(118, (bottom - top) / max(n, 1)) if first else RH
     has_sub = any(r.get("sub") for r in rows)
     big = RH >= 100
     lf_s = int(min(40, RH * 0.37)); sf_s = int(min(30, RH * 0.27)); vf_s = int(min(46, RH * 0.42))
@@ -114,6 +127,23 @@ def page(data, rows, pno, ptotal, first, last):
         while s1 > 24 and any(d.textlength(r["label"] + "  ", font=serif("Bold", s1)) + d.textlength(r.get("sub", ""), font=serif("SemiBold", s1)) > mw for r in rows):
             s1 -= 1
         data["_s1"] = s1
+    if vs:
+        cr = int(min(31, RH * 0.38)); halfw = (W - 2 * M) / 2 - cr - 30
+        sv = int(min(36, RH * 0.42))
+        while sv > 22 and any(d.textlength(r.get(k, ""), font=serif("Bold", sv)) > halfw for r in rows for k in ("a", "b")):
+            sv -= 1
+        fa, fb = serif("Bold", sv), serif("Bold", sv)
+        for i, r in enumerate(rows):
+            y = top + i * RH; cy = y + RH / 2
+            for txt, f, col, x0 in ((r.get("a", ""), fa, WHITE, M), (r.get("b", ""), fb, YEL, W / 2 + cr + 30)):
+                tw = d.textlength(txt, font=f)
+                d.text((x0 + (halfw - tw) / 2 + (0 if x0 == M else -0), cy - sv * 0.72), txt, font=f, fill=col)
+            d.ellipse([W / 2 - cr, cy - cr, W / 2 + cr, cy + cr], fill=CIRCLE, outline=LINE, width=2)
+            if r.get("e"):
+                em = emoji(r["e"], int(cr * 1.1))
+                if em: img.paste(em, (int(W / 2 - em.width / 2), int(cy - em.height / 2)), em)
+            d.line([(M, y + RH), (W - M, y + RH)], fill=LINE, width=2)
+        rows = []
     for i, r in enumerate(rows):
         y = top + i * RH; cy = y + RH / 2
         cr = 34 if big else 31
@@ -155,7 +185,7 @@ def page(data, rows, pno, ptotal, first, last):
         d.line([(M, y + RH), (W - M, y + RH)], fill=LINE, width=2)
     if last and data.get("note"):
         nf = fit(d, data["note"], lambda s: serif("Bold", s), 30, W - 2 * M, 22)
-        center(d, data["note"], top + n * RH + 22, nf, WHITE)
+        center(d, data["note"], top + n * RH + 24, nf, WHITE)
     footer(d)
     return img
 
