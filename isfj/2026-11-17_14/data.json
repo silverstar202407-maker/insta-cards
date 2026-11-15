@@ -60,5 +60,5 @@
  "per_page": 10,
  "note": "120은 서울 기준, 다른 지역은 관할 상수도사업소로",
  "theme": "isfj",
- "accent_idx": 2
+ "accent": "#4F6D8A"
 }
