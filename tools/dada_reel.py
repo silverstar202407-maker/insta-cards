@@ -13,13 +13,20 @@ W, H = 1080, 1920
 
 
 def main(folder):
+    import json
+    theme = "dada"
+    try:
+        theme = json.load(open(os.path.join(folder, "data.json"), encoding="utf-8")).get("theme", "dada")
+    except Exception:
+        pass
+    bgc = "#F7F2E8" if theme == "isfj" else "#0a0a0a"
     cards = sorted(glob.glob(os.path.join(folder, "[0-9][0-9].jpg")))
     if not cards:
         sys.exit("no NN.jpg in " + folder)
     frames = []
     for i, c in enumerate(cards, 1):
         im = Image.open(c).convert("RGB")
-        bg = Image.new("RGB", (W, H), "#0a0a0a")
+        bg = Image.new("RGB", (W, H), bgc)
         bg.paste(im, ((W - im.width) // 2, (H - im.height) // 2))
         p = os.path.join(folder, f"_f{i:02d}.png"); bg.save(p); frames.append(p)
         if i == 1:

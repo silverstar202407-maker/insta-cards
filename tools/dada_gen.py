@@ -34,7 +34,31 @@ EMOJI = "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf"
 BG, WHITE, YEL, GRAY, LINE, CIRCLE = "#0a0a0a", "#ffffff", "#ffd400", "#8c8c8c", "#262626", "#1c1c1c"
 
 
-def serif(w, s): return ImageFont.truetype(NOTO + f"NotoSerifCJK-{w}.ttc", s, index=1)
+def _noto_serif(w, s): return ImageFont.truetype(NOTO + f"NotoSerifCJK-{w}.ttc", s, index=1)
+serif = _noto_serif
+HANDLE = "@다다언니"
+PILL_A = ("#2a2a2a", "#ffffff"); PILL_B_FG = "#1a1400"
+FONTDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
+
+
+ISFJ_ACCENTS = ["#5E7D4E", "#B0603A", "#4F6D8A", "#8A5A78", "#8E6B1F", "#3F7E78", "#9A4E4E"]  # 세이지·테라코타·더스티블루·모브·머스터드·틸·로즈브라운
+
+
+def apply_theme(name, accent=None):
+    """theme: "dada"(기본, 검정·노랑·명조) / "isfj"(소박한 잇프제: 크림·갈색·세이지, 고운바탕 제목 + 고딕 본문)"""
+    global BG, WHITE, YEL, GRAY, LINE, CIRCLE, serif, HANDLE, PILL_A, PILL_B_FG
+    if name == "isfj":
+        BG, WHITE, YEL, GRAY, LINE, CIRCLE = "#F7F2E8", "#3B3128", "#5E7D4E", "#9C9184", "#E3D8C4", "#EDE4D3"
+        if accent:
+            YEL = accent
+        HANDLE = "@소박한 잇프제"; PILL_A = ("#E3D8C4", "#3B3128"); PILL_B_FG = "#F7F2E8"
+        title = os.path.join(FONTDIR, "GowunBatang-Bold.ttf")
+        m = {"Black": "Bold", "Bold": "Bold", "SemiBold": "Medium", "Medium": "Regular", "Regular": "Regular"}
+        def _isfj(w, s):
+            if w == "Black":
+                return ImageFont.truetype(title, s)
+            return ImageFont.truetype(NOTO + f"NotoSansCJK-{m.get(w, w)}.ttc", s, index=1)
+        serif = _isfj
 def sans(w, s): return ImageFont.truetype(NOTO + f"NotoSansCJK-{w}.ttc", s, index=1)
 
 
@@ -66,7 +90,7 @@ def fit(d, text, font_fn, size, maxw, minsize):
 
 
 def footer(d):
-    ft = sans("Regular", 28); t1, t2 = "더 많은 정보는 ", "@다다언니"
+    ft = sans("Regular", 28); t1, t2 = "더 많은 정보는 ", HANDLE
     sx = (W - d.textlength(t1 + t2, font=ft)) / 2
     d.text((sx, 1262), t1, font=ft, fill=GRAY)
     d.text((sx + d.textlength(t1, font=ft), 1262), t2, font=ft, fill=YEL)
@@ -109,7 +133,7 @@ def page(data, rows, pno, ptotal, first, last):
         # A | B 머리 칸
         hw = (W - 2 * M) / 2
         pf = serif("Black", 34)
-        for i, (lab, col, fg) in enumerate([("A", "#2a2a2a", WHITE), ("B", YEL, "#1a1400")]):
+        for i, (lab, col, fg) in enumerate([("A", PILL_A[0], PILL_A[1]), ("B", YEL, PILL_B_FG)]):
             cx = M + hw * i + hw / 2
             d.rounded_rectangle([cx - 70, top - 62, cx + 70, top - 14], radius=24, fill=col)
             d.text((cx - d.textlength(lab, font=pf) / 2, top - 61), lab, font=pf, fill=fg)
@@ -192,6 +216,7 @@ def page(data, rows, pno, ptotal, first, last):
 
 def main(src, out):
     data = json.load(open(src, encoding="utf-8"))
+    apply_theme(data.get("theme", "dada"), data.get("accent"))
     rows = data["rows"]
     per1 = data.get("per_page") or (9 if len(rows) <= 9 else 7)
     per = 9
