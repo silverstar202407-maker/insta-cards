@@ -35,7 +35,7 @@ def pick_source(D, H):
         return m[(D, H)]
     used = set(m.values())
     appr = [tuple(l.split()[:2]) for l in open(os.path.join(ROOT, "dada", "approved.txt"), encoding="utf-8") if l.strip()]
-    cand = [(d, int(h)) for d, h in appr if d >= "2026-11-16" and d != D and (d, int(h)) not in used
+    cand = [(d, int(h)) for d, h in appr if d >= "2026-11-16" and abs((dt.date.fromisoformat(d) - dt.date.fromisoformat(D)).days) >= 2 and (d, int(h)) not in used
             and os.path.exists(os.path.join(ROOT, "dada", f"{d}_{h}", "data.json"))]
     if not cand:
         return None
