@@ -5,7 +5,7 @@
  "sub_color": "yellow",
  "oneline": true,
  "per_page": 10,
- "note": "오늘 밤 몇 개 하고 있었나요? 👀",
+ "note": "오늘 밤 몇 개 하고 있었나요?",
  "rows": [
   {
    "e": "🎧",
