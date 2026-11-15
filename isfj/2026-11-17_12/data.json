@@ -58,5 +58,5 @@
  "per_page": 10,
  "note": "링크 하나, 송금 한 번 전에 꼭 다시 확인하세요",
  "theme": "isfj",
- "accent": "#4F6D8A"
+ "accent_idx": 2
 }
