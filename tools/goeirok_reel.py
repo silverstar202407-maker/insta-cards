@@ -5,9 +5,10 @@
 필요: pillow, ffmpeg
 
 릴스는 흥미 유도용 예고편이다(사용자 결정): 결말을 보여주지 않는다.
-구성: 표지(송명체 빨강 후킹 문구, 2.5초) -> story.json 의 "teaser"(한 장 분량, 3~5문단,
-      궁금해서 프로필로 들어올 지점에서 끊음, 마지막 문장은 {"s":"R"}) 문단이 하나씩 나타남
-      -> 마지막 문장 2.5초 더 유지 -> 끝 화면("뒷이야기는 프로필에서", 3초). 배경 웅웅 소리 유지.
+구성(사용자 결정): 움직이지 않는 정지 이미지 한 장. 그 한 장 안에 송명체 빨강 제목 + story.json 의
+      "teaser"(3~5문단, 궁금해서 프로필로 들어올 지점에서 끊음, 마지막 문장 {"s":"R"}) +
+      "뒷이야기는 프로필에서 / @goeirok_archive" 를 모두 넣는다. 길이는 글자 수에 맞춰 15~22초,
+      배경 웅웅 소리 유지.
 story.json 에 "teaser" 가 없으면 에러로 끝난다(먼저 teaser 를 써 넣을 것).
 디자인: 카드뉴스와 같은 검은 바탕, 본문 Noto Sans KR 흰 글씨, 강조 B=굵게, R=빨강.
 """
@@ -87,33 +88,53 @@ def page_frames(title, paras):
         out.append((img, max(2.2, n * 0.075)))
     return out
 
+def still_img(s):
+    """한 장 안에 제목 + 예고 본문 + 프로필 유도 문구를 모두 넣은 정지 화면"""
+    img = Image.new("RGB", (W, H), BG); d = ImageDraw.Draw(img)
+    d.text((100, 150), "괴이록", font=SMALL, fill=GREY)
+    d.line((100, H - 230, 190, H - 230), fill=RED, width=3)
+    size = 150
+    while d.textlength(s["title"], font=SONG(size)) > W - 200: size -= 4
+    blocks = []
+    for p in s["teaser"]:
+        if isinstance(p, dict):
+            blocks.append((wrap(d, p["t"], BOLD), RED if p.get("s") == "R" else WHITE, BOLD))
+        else:
+            blocks.append((wrap(d, p, BODY), WHITE, BODY))
+    LH, GAP = 70, 38
+    body_h = sum(len(l) * LH for l, _, _ in blocks) + GAP * (len(blocks) - 1)
+    total_h = size + 90 + body_h + 110 + 50 + 50
+    if total_h > H - 520:
+        print(f"OVERFLOW teaser ({total_h}px)"); sys.exit(2)
+    y = (H - total_h) / 2 + 20
+    d.text((100, y), s["title"], font=SONG(size), fill=COVER_RED); y += size + 90
+    for lines, color, font in blocks:
+        for ln in lines: d.text((100, y), ln, font=font, fill=color); y += LH
+        y += GAP
+    y += 110 - GAP
+    d.text((100, y), "뒷이야기는 프로필에서", font=sans(42, 700), fill=WHITE); y += 62
+    d.text((100, y), "@goeirok_archive", font=SMALL, fill=GREY)
+    return img
+
 def main(src, out):
     s = json.load(open(src, encoding="utf-8"))
     os.makedirs(out, exist_ok=True)
-    scenes = [(cover_img(s["cover"]), 2.5)]
     if "teaser" not in s:
         print("NO_TEASER"); sys.exit(3)
-    scenes += page_frames(s["title"], s["teaser"])
-    img, dur = scenes[-1]; scenes[-1] = (img, dur + 2.5)
-    scenes.append((end_img(), 3.0))
-    total = sum(t for _, t in scenes)
-    tmpd = tempfile.mkdtemp()
-    lst = []
-    for i, (img, t) in enumerate(scenes):
-        p = os.path.join(tmpd, f"{i:03d}.png"); img.save(p)
-        lst.append(f"file '{p}'\nduration {t:.2f}")
-    lst.append(f"file '{os.path.join(tmpd, f'{len(scenes)-1:03d}.png')}'")
-    open(os.path.join(tmpd, "list.txt"), "w").write("\n".join(lst) + "\n")
+    img = still_img(s)
+    chars = sum(len((p["t"] if isinstance(p, dict) else p).replace(" ", "")) for p in s["teaser"])
+    total = round(max(15.0, chars * 0.065 + 4), 1)
+    tmpd = tempfile.mkdtemp(); still = os.path.join(tmpd, "still.png"); img.save(still)
     video = os.path.join(out, "reel.mp4")
     audio = (f"anoisesrc=color=brown:amplitude=0.25:d={total:.2f},lowpass=f=300,"
              f"volume=0.35,afade=t=in:d=2,afade=t=out:st={max(total-3,0):.2f}:d=3[n];"
              f"sine=f=55:d={total:.2f},volume=0.12[s];[n][s]amix=inputs=2:normalize=0[a]")
-    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", os.path.join(tmpd, "list.txt"),
+    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-loop", "1", "-framerate", "30", "-i", still,
            "-filter_complex", audio, "-map", "0:v", "-map", "[a]",
-           "-vf", "fps=30,format=yuv420p", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+           "-vf", "format=yuv420p", "-c:v", "libx264", "-preset", "veryfast", "-tune", "stillimage", "-crf", "20",
            "-c:a", "aac", "-b:a", "128k", "-t", f"{total:.2f}", "-movflags", "+faststart", video]
     subprocess.run(cmd, check=True)
-    scenes[0][0].save(os.path.join(out, "reel_cover.jpg"), quality=92)
+    img.save(os.path.join(out, "reel_cover.jpg"), quality=92)
     cap = s["caption"].strip().split("\n")
     try:
         end = cap.index("", 2); hook = cap[2:end]
@@ -124,7 +145,7 @@ def main(src, out):
                           "👉 @goeirok_archive",
                           "💬 당신이 겪은 기이한 일도 댓글로 들려주세요.", "", TAGS])
     open(os.path.join(out, "reel_caption.txt"), "w", encoding="utf-8").write(reel_cap + "\n")
-    print("ok", f"{total:.1f}s")
+    print("ok", f"{total}s")
 
 if __name__ == "__main__":
     main(sys.argv[1], sys.argv[2])

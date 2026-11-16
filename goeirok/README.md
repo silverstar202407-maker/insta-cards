@@ -21,6 +21,6 @@
 
 ## 릴스 (매일 22:00)
 - 그날 새벽 3시에 올린 이야기(posted.txt 의 오늘 줄 slug)의 '예고편' 릴스를 22시에 올린다.
-- 릴스는 흥미 유도용(사용자 결정): 표지 + story.json 의 "teaser"(한 장 분량 3~5문단, 결말 없이 궁금한 지점에서 끊고 마지막 문장은 R) + "뒷이야기는 프로필에서" 끝 화면. 약 20초, 배경 웅웅 소리 유지.
+- 릴스는 흥미 유도용(사용자 결정): 움직이지 않는 정지 이미지 한 장 안에 제목 + story.json 의 "teaser"(3~5문단, 결말 없이 궁금한 지점에서 끊고 마지막 문장은 R) + "뒷이야기는 프로필에서"를 모두 넣는다. 15~22초, 배경 웅웅 소리 유지.
 - 만들기: python3 tools/goeirok_reel.py goeirok/stories/{slug}.json goeirok/posts/{slug} → reel.mp4, reel_cover.jpg, reel_caption.txt (ffmpeg 필요)
 - reels_posted.txt: "{날짜} {slug} {제목}" 릴스 게시 기록
