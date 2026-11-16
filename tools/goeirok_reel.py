@@ -4,8 +4,11 @@
   -> reel.mp4 (1080x1920, 30fps, 무음이 아닌 직접 합성한 낮은 앰비언트 소리), reel_cover.jpg, reel_caption.txt
 필요: pillow, ffmpeg
 
-구성: 표지(송명체 빨강 후킹 문구, 2.5초) -> 본문 장마다 문단이 하나씩 나타남(글자 수에 비례해 머무름)
-      -> 마지막 장면(빨강 반전 문장) 추가로 2.5초 유지 -> 끝 화면(괴이록 / 팔로우 안내, 3초)
+릴스는 흥미 유도용 예고편이다(사용자 결정): 결말을 보여주지 않는다.
+구성: 표지(송명체 빨강 후킹 문구, 2.5초) -> story.json 의 "teaser"(한 장 분량, 3~5문단,
+      궁금해서 프로필로 들어올 지점에서 끊음, 마지막 문장은 {"s":"R"}) 문단이 하나씩 나타남
+      -> 마지막 문장 2.5초 더 유지 -> 끝 화면("뒷이야기는 프로필에서", 3초). 배경 웅웅 소리 유지.
+story.json 에 "teaser" 가 없으면 에러로 끝난다(먼저 teaser 를 써 넣을 것).
 디자인: 카드뉴스와 같은 검은 바탕, 본문 Noto Sans KR 흰 글씨, 강조 B=굵게, R=빨강.
 """
 import json, os, subprocess, sys, tempfile
@@ -56,8 +59,8 @@ def cover_img(lines):
 def end_img():
     img = Image.new("RGB", (W, H), (0, 0, 0)); d = ImageDraw.Draw(img)
     d.text((W / 2, H / 2 - 90), "괴이록", font=SONG(170), fill=COVER_RED, anchor="mm")
-    d.text((W / 2, H / 2 + 70), "매일 밤, 기이한 기록 한 편", font=SMALL, fill=GREY, anchor="mm")
-    d.text((W / 2, H / 2 + 125), "팔로우하고 다음 이야기를 받아보세요", font=SMALL, fill=GREY, anchor="mm")
+    d.text((W / 2, H / 2 + 70), "뒷이야기는 프로필에서", font=sans(40, 700), fill=WHITE, anchor="mm")
+    d.text((W / 2, H / 2 + 135), "@goeirok_archive", font=SMALL, fill=GREY, anchor="mm")
     return img
 
 def page_frames(title, paras):
@@ -88,8 +91,9 @@ def main(src, out):
     s = json.load(open(src, encoding="utf-8"))
     os.makedirs(out, exist_ok=True)
     scenes = [(cover_img(s["cover"]), 2.5)]
-    for pg in s["pages"]:
-        scenes += page_frames(s["title"], pg)
+    if "teaser" not in s:
+        print("NO_TEASER"); sys.exit(3)
+    scenes += page_frames(s["title"], s["teaser"])
     img, dur = scenes[-1]; scenes[-1] = (img, dur + 2.5)
     scenes.append((end_img(), 3.0))
     total = sum(t for _, t in scenes)
@@ -116,8 +120,8 @@ def main(src, out):
     except ValueError:
         hook = cap[2:3]
     reel_cap = "\n".join([f"「{s['title']}」", "", *hook, "",
-                          "🕯 소리 켜고 끝까지 보세요.",
-                          "📖 카드로 천천히 읽고 싶다면 프로필 피드에서.",
+                          "🕯 이 이야기의 결말은 프로필 피드에 있습니다.",
+                          "👉 @goeirok_archive",
                           "💬 당신이 겪은 기이한 일도 댓글로 들려주세요.", "", TAGS])
     open(os.path.join(out, "reel_caption.txt"), "w", encoding="utf-8").write(reel_cap + "\n")
     print("ok", f"{total:.1f}s")
