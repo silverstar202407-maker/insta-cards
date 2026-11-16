@@ -1,9 +1,9 @@
-# 괴이록 (인스타 goeirok_archive) — 공포 단편 카드뉴스, 매일 03:00 게시
+# 괴이록 (인스타 goeirok_archive) — 공포 단편 카드뉴스 하루 3개(03·12·18시) + 예고 릴스 하루 1개(22시)
 
-- schedule.json: 날짜별로 미리 만든 글(slug). 없으면 그날 새로 쓴다.
+- queue.json: 미리 만들어 둔 글(slug) 순서. posted.txt 에 없는 첫 slug 를 올리고, 다 쓰면 새로 쓴다.
 - stories/{slug}.json: 원고(형식은 tools/goeirok_render.py 상단 docstring)
 - posts/{slug}/01~05.jpg, caption.txt: 게시물
-- posted.txt: "{날짜} {slug} {제목}" 게시 기록(중복 방지)
+- posted.txt: "{날짜} {시} {slug} {제목}" 게시 기록(중복 방지). 첫 줄만 예전 형식("{날짜} {slug} …").
 - used.txt: 이미 쓴 소재 한 줄씩(새 글은 겹치지 않게)
 
 ## 해시태그(고정, 그대로): #괴담 #공포 #무서운이야기 #공포썰 #실화
@@ -20,7 +20,7 @@
 남의 작품·방송·캐릭터(치이카와, 나는 솔로, 방송사 등), 실존 인물·실존 장소를 귀신 장소로 지목하는 글, 잔혹한 고문·고어 묘사.
 
 ## 릴스 (매일 22:00)
-- 그날 새벽 3시에 올린 이야기(posted.txt 의 오늘 줄 slug)의 '예고편' 릴스를 22시에 올린다.
+- 그날 올린 카드뉴스 중 가장 최근 것(보통 18시 글)의 '예고편' 릴스를 22시에 올린다. 릴스는 하루 1개만.
 - 릴스는 흥미 유도용(사용자 결정): 움직이지 않는 정지 이미지 한 장 안에 제목 + story.json 의 "teaser"(3~5문단, 결말 없이 궁금한 지점에서 끊고 마지막 문장은 R) + "뒷이야기는 프로필에서"를 모두 넣는다. 3초(인스타 최소 길이), 배경 웅웅 소리 유지.
 - 만들기: python3 tools/goeirok_reel.py goeirok/stories/{slug}.json goeirok/posts/{slug} → reel.mp4, reel_cover.jpg, reel_caption.txt (ffmpeg 필요)
 - reels_posted.txt: "{날짜} {slug} {제목}" 릴스 게시 기록
