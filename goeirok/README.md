@@ -18,3 +18,8 @@
 ## 쓰지 않는 소재
 실제 범죄·실제 피해자·실존 사건(4chan 사건, 그알, 식인, 집단 범죄 등), 자살·자해, 특정 질환/장애 낙인(조현병 등),
 남의 작품·방송·캐릭터(치이카와, 나는 솔로, 방송사 등), 실존 인물·실존 장소를 귀신 장소로 지목하는 글, 잔혹한 고문·고어 묘사.
+
+## 릴스 (매일 22:00)
+- 그날 새벽 3시에 올린 이야기(posted.txt 의 오늘 줄 slug)를 9:16 릴스로 22시에 다시 올린다.
+- 만들기: python3 tools/goeirok_reel.py goeirok/stories/{slug}.json goeirok/posts/{slug} → reel.mp4, reel_cover.jpg, reel_caption.txt (ffmpeg 필요)
+- reels_posted.txt: "{날짜} {slug} {제목}" 릴스 게시 기록
