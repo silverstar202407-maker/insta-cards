@@ -7,7 +7,7 @@
 릴스는 흥미 유도용 예고편이다(사용자 결정): 결말을 보여주지 않는다.
 구성(사용자 결정): 움직이지 않는 정지 이미지 한 장. 그 한 장 안에 송명체 빨강 제목 + story.json 의
       "teaser"(3~5문단, 궁금해서 프로필로 들어올 지점에서 끊음, 마지막 문장 {"s":"R"}) +
-      "뒷이야기는 프로필에서 / @goeirok_archive" 를 모두 넣는다. 길이는 글자 수에 맞춰 15~22초,
+      "뒷이야기는 프로필에서 / @goeirok_archive" 를 모두 넣는다. 길이는 3초 고정(사용자는 2초를 원했으나 인스타 최소 3초),
       배경 웅웅 소리 유지.
 story.json 에 "teaser" 가 없으면 에러로 끝난다(먼저 teaser 를 써 넣을 것).
 디자인: 카드뉴스와 같은 검은 바탕, 본문 Noto Sans KR 흰 글씨, 강조 B=굵게, R=빨강.
@@ -123,11 +123,11 @@ def main(src, out):
         print("NO_TEASER"); sys.exit(3)
     img = still_img(s)
     chars = sum(len((p["t"] if isinstance(p, dict) else p).replace(" ", "")) for p in s["teaser"])
-    total = round(max(15.0, chars * 0.065 + 4), 1)
+    total = 3.0  # 사용자 요청은 2초였으나 인스타 API 최소 길이가 3초라 3초로 고정
     tmpd = tempfile.mkdtemp(); still = os.path.join(tmpd, "still.png"); img.save(still)
     video = os.path.join(out, "reel.mp4")
     audio = (f"anoisesrc=color=brown:amplitude=0.25:d={total:.2f},lowpass=f=300,"
-             f"volume=0.35,afade=t=in:d=2,afade=t=out:st={max(total-3,0):.2f}:d=3[n];"
+             f"volume=0.35,afade=t=in:d=0.3,afade=t=out:st={max(total-0.6,0):.2f}:d=0.6[n];"
              f"sine=f=55:d={total:.2f},volume=0.12[s];[n][s]amix=inputs=2:normalize=0[a]")
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-loop", "1", "-framerate", "30", "-i", still,
            "-filter_complex", audio, "-map", "0:v", "-map", "[a]",
