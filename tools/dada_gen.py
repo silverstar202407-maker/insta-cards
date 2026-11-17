@@ -119,7 +119,8 @@ def page(data, rows, pno, ptotal, first, last):
     n = len(rows)
     note_h = 70 if (last and data.get("note")) else 0
     vs = bool(data.get("vs"))
-    cap = 84 if (data.get("oneline") or vs) else 118
+    has_s = vs and any(r.get("s") for r in rows)
+    cap = 112 if has_s else (84 if (data.get("oneline") or vs) else 118)
     hdr_vs = 70 if vs else 0
     if first:
         head = (75 if data.get("tag") else 15) + 215 + hdr_vs
@@ -148,11 +149,13 @@ def page(data, rows, pno, ptotal, first, last):
         # A | B 머리 칸
         hw = (W - 2 * M) / 2
         pf = serif("Black", 34)
-        for i, (lab, col, fg) in enumerate([("A", PILL_A[0], PILL_A[1]), ("B", YEL, PILL_B_FG)]):
+        for i, (lab, col, fg) in enumerate([(data.get("a_label", "A"), PILL_A[0], PILL_A[1]), (data.get("b_label", "B"), YEL, PILL_B_FG)]):
             cx = M + hw * i + hw / 2
-            d.rounded_rectangle([cx - 70, top - 62, cx + 70, top - 14], radius=24, fill=col)
+            pw = max(70, d.textlength(lab, font=pf) / 2 + 30)
+            d.rounded_rectangle([cx - pw, top - 62, cx + pw, top - 14], radius=24, fill=col)
             d.text((cx - d.textlength(lab, font=pf) / 2, top - 61), lab, font=pf, fill=fg)
-        d.line([(W / 2, top - 62), (W / 2, top + n * RH)], fill=LINE, width=2)
+        if not has_s:
+            d.line([(W / 2, top - 62), (W / 2, top + n * RH)], fill=LINE, width=2)
     bottom = 1180 if (last and data.get("note")) else 1225
     has_sub = any(r.get("sub") for r in rows)
     big = RH >= 100
@@ -174,6 +177,10 @@ def page(data, rows, pno, ptotal, first, last):
         fa, fb = serif("Bold", sv), serif("Bold", sv)
         for i, r in enumerate(rows):
             y = top + i * RH; cy = y + RH / 2
+            if r.get("s"):
+                sf = serif("SemiBold", int(min(24, RH * 0.22)))
+                st = r["s"]; d.text((W / 2 - d.textlength(st, font=sf) / 2, y + 6), st, font=sf, fill=GRAY)
+                cy = y + RH / 2 + RH * 0.13
             for txt, f, col, x0 in ((r.get("a", ""), fa, WHITE, M), (r.get("b", ""), fb, YEL, W / 2 + cr + 30)):
                 tw = d.textlength(txt, font=f)
                 d.text((x0 + (halfw - tw) / 2 + (0 if x0 == M else -0), cy - sv * 0.72), txt, font=f, fill=col)
