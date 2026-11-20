@@ -11,6 +11,7 @@
       배경 웅웅 소리 유지.
 story.json 에 "teaser" 가 없으면 에러로 끝난다(먼저 teaser 를 써 넣을 것).
 디자인: 카드뉴스와 같은 검은 바탕, 본문 Noto Sans KR 흰 글씨, 강조 B=굵게, R=빨강.
+릴스 양식(사용자 결정, 2026-11-20): 본문 30px(강조 31), 줄 간격 50, 줄 길이 720px, 문장마다 줄바꿈.
 """
 import json, os, subprocess, sys, tempfile
 from PIL import Image, ImageDraw, ImageFont
@@ -27,16 +28,31 @@ def sans(size, weight):
     f = ImageFont.truetype(os.path.join(FD, "NotoSansKR.ttf"), size)
     f.set_variation_by_axes([weight]); return f
 
-BODY, BOLD, SMALL = sans(44, 400), sans(45, 700), sans(30, 400)
+BODY, BOLD, SMALL = sans(30, 400), sans(31, 700), sans(30, 400)
 SONG = lambda s: ImageFont.truetype(os.path.join(FD, "SongMyung-Regular.ttf"), s)
 
-def wrap(d, text, font):
+def wrap(d, text, font, maxw=MAXW):
     lines, cur = [], ""
     for w in text.split(" "):
         t = (cur + " " + w).strip()
-        if d.textlength(t, font=font) <= MAXW: cur = t
+        if d.textlength(t, font=font) <= maxw: cur = t
         else: lines.append(cur); cur = w
     lines.append(cur); return lines
+
+TEASER_W = 720  # 릴스 본문 줄 길이(짧게 끊어 읽기 쉽게)
+
+def wrap_even(d, text, font):
+    """TEASER_W 안에서 줄 수는 그대로 두고 줄 길이를 고르게(마지막 줄에 한 단어만 남지 않게)"""
+    import re
+    sents = [x for x in re.split(r'(?<=[.?!…])\s+', text) if x]
+    if len(sents) > 1 and all(d.textlength(x, font=font) <= TEASER_W for x in sents):
+        return sents  # 문장마다 한 줄
+    n = len(wrap(d, text, font, TEASER_W)); lo, hi = 200, TEASER_W
+    while lo < hi:
+        m = (lo + hi) // 2
+        if len(wrap(d, text, font, m)) <= n: hi = m
+        else: lo = m + 1
+    return wrap(d, text, font, hi)
 
 def base(title):
     img = Image.new("RGB", (W, H), BG); d = ImageDraw.Draw(img)
@@ -98,10 +114,10 @@ def still_img(s):
     blocks = []
     for p in s["teaser"]:
         if isinstance(p, dict):
-            blocks.append((wrap(d, p["t"], BOLD), RED if p.get("s") == "R" else WHITE, BOLD))
+            blocks.append((wrap_even(d, p["t"], BOLD), RED if p.get("s") == "R" else WHITE, BOLD))
         else:
-            blocks.append((wrap(d, p, BODY), WHITE, BODY))
-    LH, GAP = 70, 38
+            blocks.append((wrap_even(d, p, BODY), WHITE, BODY))
+    LH, GAP = 50, 26
     body_h = sum(len(l) * LH for l, _, _ in blocks) + GAP * (len(blocks) - 1)
     total_h = size + 90 + body_h + 110 + 50 + 50
     if total_h > H - 520:
