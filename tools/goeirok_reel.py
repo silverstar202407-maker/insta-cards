@@ -10,6 +10,8 @@
       "뒷이야기는 프로필에서 / @goeirok_archive" 를 모두 넣는다. 길이는 3초 고정(사용자는 2초를 원했으나 인스타 최소 3초),
       배경 웅웅 소리 유지.
 story.json 에 "teaser" 가 없으면 에러로 끝난다(먼저 teaser 를 써 넣을 것).
+셋째 인자로 다른 예고 키를 줄 수 있다(예: teaser2 — 같은 글의 두 번째 릴스용, 다른 장면에서 끊은 예고).
+  python3 tools/goeirok_reel.py goeirok/stories/{slug}.json goeirok/posts/{slug} teaser2
 디자인: 카드뉴스와 같은 검은 바탕, 본문 Noto Sans KR 흰 글씨, 강조 B=굵게, R=빨강.
 릴스 양식(사용자 결정, 2026-11-20): 본문 30px(강조 31), 줄 간격 50, 줄 길이 720px, 문장마다 줄바꿈.
 """
@@ -104,7 +106,7 @@ def page_frames(title, paras):
         out.append((img, max(2.2, n * 0.075)))
     return out
 
-def still_img(s):
+def still_img(s, key="teaser"):
     """한 장 안에 제목 + 예고 본문 + 프로필 유도 문구를 모두 넣은 정지 화면"""
     img = Image.new("RGB", (W, H), BG); d = ImageDraw.Draw(img)
     d.text((100, 150), "괴이록", font=SMALL, fill=GREY)
@@ -112,7 +114,7 @@ def still_img(s):
     size = 150
     while d.textlength(s["title"], font=SONG(size)) > W - 200: size -= 4
     blocks = []
-    for p in s["teaser"]:
+    for p in s[key]:
         if isinstance(p, dict):
             blocks.append((wrap_even(d, p["t"], BOLD), RED if p.get("s") == "R" else WHITE, BOLD))
         else:
@@ -132,13 +134,12 @@ def still_img(s):
     d.text((100, y), "@goeirok_archive", font=SMALL, fill=GREY)
     return img
 
-def main(src, out):
+def main(src, out, key="teaser"):
     s = json.load(open(src, encoding="utf-8"))
     os.makedirs(out, exist_ok=True)
-    if "teaser" not in s:
-        print("NO_TEASER"); sys.exit(3)
-    img = still_img(s)
-    chars = sum(len((p["t"] if isinstance(p, dict) else p).replace(" ", "")) for p in s["teaser"])
+    if key not in s:
+        print("NO_TEASER", key); sys.exit(3)
+    img = still_img(s, key)
     total = 3.0  # 사용자 요청은 2초였으나 인스타 API 최소 길이가 3초라 3초로 고정
     tmpd = tempfile.mkdtemp(); still = os.path.join(tmpd, "still.png"); img.save(still)
     video = os.path.join(out, "reel.mp4")
@@ -164,4 +165,4 @@ def main(src, out):
     print("ok", f"{total}s")
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], *(sys.argv[3:4]))
