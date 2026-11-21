@@ -1,6 +1,7 @@
 """괴이록(goeirok_archive) 공포 카드뉴스 생성기.
 
-사용법: python3 tools/goeirok_render.py story.json OUTDIR
+사용법: python3 tools/goeirok_render.py story.json OUTDIR [vivid]
+  vivid: 오싹한 새싹(ossac_saessac)용. 빨간 글씨 채도만 높임(본문 R·선 #D21414, 표지 #D60000), 나머지 디자인 동일.
   -> OUTDIR/01.jpg(표지) ~ 0N.jpg(본문), OUTDIR/caption.txt
 
 story.json 형식:
@@ -78,6 +79,9 @@ def body(title, paras, n, total, path):
     img.save(path, quality=92)
 
 def main(src, out):
+    global RED, COVER_RED
+    if len(sys.argv) > 3 and sys.argv[3] == "vivid":
+        RED, COVER_RED = (210, 20, 20), (214, 0, 0)
     s = json.load(open(src, encoding="utf-8"))
     os.makedirs(out, exist_ok=True)
     total = len(s["pages"]) + 1
