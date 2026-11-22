@@ -20,7 +20,7 @@ def load_map():
         for ln in open(MAPFILE, encoding="utf-8"):
             p = ln.split()
             if len(p) >= 4:
-                m[(p[0], int(p[1]))] = (p[2], int(p[3]))
+                m[(p[0], int(p[1]))] = (p[2], int(p[3]) if p[3].isdigit() else p[3])
     return m
 
 
@@ -33,7 +33,7 @@ def pick_source(D, H):
     m = load_map()
     if (D, H) in m:
         return m[(D, H)]
-    used = set(m.values())
+    used = set(v for v in m.values() if v[0] != "only")
     appr = [tuple(l.split()[:2]) for l in open(os.path.join(ROOT, "dada", "approved.txt"), encoding="utf-8") if l.strip()]
     cand = [(d, int(h)) for d, h in appr if d >= "2026-11-16" and abs((dt.date.fromisoformat(d) - dt.date.fromisoformat(D)).days) >= 2 and (d, int(h)) not in used
             and os.path.exists(os.path.join(ROOT, "dada", f"{d}_{h}", "data.json"))]
@@ -51,6 +51,13 @@ def main(D, H):
     s = pick_source(D, H)
     if s is None:
         print("NO_SOURCE"); sys.exit(2)
+    if s[0] == "only":  # 잇프제 전용 글: isfj/only/<이름> 을 그대로 복사
+        import shutil
+        src = os.path.join(ROOT, "isfj", "only", s[1]); out = os.path.join(ROOT, "isfj", f"{D}_{H}")
+        os.makedirs(out, exist_ok=True)
+        for f in os.listdir(src):
+            if f != "src.json": shutil.copy(os.path.join(src, f), os.path.join(out, f))
+        print("SOURCE only", s[1]); print(out); return
     src = os.path.join(ROOT, "dada", f"{s[0]}_{s[1]}"); out = os.path.join(ROOT, "isfj", f"{D}_{H}")
     print("SOURCE", s[0], s[1])
     data = json.load(open(os.path.join(src, "data.json"), encoding="utf-8"))
