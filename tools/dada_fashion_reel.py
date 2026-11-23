@@ -96,6 +96,9 @@ def main(folder):
         frames.append(p)
     cards[0].save(os.path.join(folder, "cover.jpg"), "JPEG", quality=92)
 
+    if sp.get("fast"):
+        make_fast(folder, frames, sp)
+        return
     durs = [2.5] + [3.0] * len(looks) + [3.0]
     fd = 0.4
     n = len(frames)
@@ -116,6 +119,58 @@ def main(folder):
     subprocess.run(args, check=True)
     print("ok", total)
 
+
+
+def shutter_wav(path, times, total, sr=44100):
+    """카메라 셔터 '차칵' 소리: 짧은 고역 노이즈 클릭 2번(약 45ms 간격)."""
+    import numpy as np, wave
+    rng = np.random.default_rng(7)
+    out = np.zeros(int(total * sr) + sr // 10)
+    def click(amp, dur, tone):
+        n = int(dur * sr); t = np.arange(n) / sr
+        env = np.exp(-t / (dur / 5))
+        noise = rng.standard_normal(n)
+        noise = np.diff(np.concatenate([[0], noise]))  # 고역 강조
+        return amp * env * (0.75 * noise / 3 + 0.25 * np.sin(2 * np.pi * tone * t))
+    snd = np.zeros(int(0.12 * sr))
+    a = click(0.9, 0.035, 2400); snd[:len(a)] += a
+    b = click(0.7, 0.05, 1600); o = int(0.045 * sr); snd[o:o + len(b)] += b
+    for t0 in times:
+        k = int(t0 * sr); out[k:k + len(snd)] += snd[: len(out) - k]
+    out = out[: int(total * sr)]
+    out = np.clip(out / max(1e-6, np.abs(out).max()) * 0.85, -1, 1)
+    pcm = (out * 32767).astype("<i2")
+    st = np.repeat(pcm[:, None], 2, axis=1)
+    with wave.open(path, "wb") as w:
+        w.setnchannels(2); w.setsampwidth(2); w.setframerate(sr); w.writeframes(st.tobytes())
+
+
+def make_fast(folder, frames, sp):
+    """빠른 컷 편집: 컷마다 셔터음 + 2프레임 흰 플래시. 총 길이 sp['total'](기본 5초)."""
+    n = len(frames)
+    total = float(sp.get("total", 5.0))
+    first = float(sp.get("first", total / n * 1.15))
+    rest = (total - first) / (n - 1)
+    durs = [first] + [rest] * (n - 1)
+    cuts, t = [], 0.0
+    for d in durs[:-1]:
+        t += d; cuts.append(t)
+    wav = os.path.join(folder, "_shutter.wav")
+    shutter_wav(wav, [0.05] + [c - 0.02 for c in cuts], total)
+    args = ["ffmpeg", "-y", "-loglevel", "error"]
+    for f, d in zip(frames, durs):
+        args += ["-loop", "1", "-framerate", "30", "-t", f"{d:.3f}", "-i", f]
+    args += ["-i", wav]
+    fc = "".join(f"[{i}:v]setsar=1[s{i}];" for i in range(n))
+    fc += "".join(f"[s{i}]" for i in range(n)) + f"concat=n={n}:v=1:a=0[c];"
+    flash = "+".join(f"between(t,{c:.3f},{c + 0.066:.3f})" for c in cuts)
+    fc += f"[c]eq=brightness=0.45:enable='{flash}',format=yuv420p,fps=30[v]"
+    args += ["-filter_complex", fc, "-map", "[v]", "-map", f"{n}:a", "-c:v", "libx264", "-preset", "medium",
+             "-crf", "19", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", "-t", f"{total:.2f}",
+             os.path.join(folder, "reel.mp4")]
+    subprocess.run(args, check=True)
+    os.remove(wav)
+    print("fast", [round(d, 2) for d in durs])
 
 if __name__ == "__main__":
     main(sys.argv[1])
