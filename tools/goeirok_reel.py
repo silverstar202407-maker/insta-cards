@@ -10,6 +10,8 @@
       "뒷이야기는 프로필에서 / @goeirok_archive" 를 모두 넣는다. 길이는 3초 고정(사용자는 2초를 원했으나 인스타 최소 3초),
       배경 웅웅 소리 유지.
 story.json 에 "teaser" 가 없으면 에러로 끝난다(먼저 teaser 를 써 넣을 것).
+오싹한 새싹(@ossac_saessac) 릴스: 끝에 ossac 를 붙이면 빨강 채도(vivid)와 계정 아이디·캡션 아이디가 바뀐다.
+  python3 tools/goeirok_reel.py goeirok/stories/{slug}.json goeirok/posts/{slug}/ossac ossac
 셋째 인자로 다른 예고 키를 줄 수 있다(예: teaser2 — 같은 글의 두 번째 릴스용, 다른 장면에서 끊은 예고).
   python3 tools/goeirok_reel.py goeirok/stories/{slug}.json goeirok/posts/{slug} teaser2
 디자인: 카드뉴스와 같은 검은 바탕, 본문 Noto Sans KR 흰 글씨, 강조 B=굵게, R=빨강.
@@ -23,6 +25,13 @@ FD = os.path.join(HERE, "..", "goeirok", "fonts")
 W, H = 1080, 1920
 WHITE, GREY, RED, BG = (232, 230, 226), (120, 118, 115), (176, 28, 28), (8, 8, 8)
 COVER_RED = (178, 0, 0)
+HANDLE = "@goeirok_archive"
+LABEL = "괴이록"
+
+def use_ossac():
+    """오싹한 새싹(ossac_saessac)용: 빨강 채도만 높이고 계정 아이디를 바꾼다(카드뉴스 vivid 와 같은 색)."""
+    global RED, COVER_RED, HANDLE, LABEL
+    RED, COVER_RED, HANDLE, LABEL = (210, 20, 20), (214, 0, 0), "@ossac_saessac", "오싹한 새싹"
 MAXW = W - 200
 TAGS = "#괴담 #공포 #무서운이야기 #공포썰 #실화"
 
@@ -109,7 +118,7 @@ def page_frames(title, paras):
 def still_img(s, key="teaser"):
     """한 장 안에 제목 + 예고 본문 + 프로필 유도 문구를 모두 넣은 정지 화면"""
     img = Image.new("RGB", (W, H), BG); d = ImageDraw.Draw(img)
-    d.text((100, 150), "괴이록", font=SMALL, fill=GREY)
+    d.text((100, 150), LABEL, font=SMALL, fill=GREY)
     d.line((100, H - 230, 190, H - 230), fill=RED, width=3)
     size = 150
     while d.textlength(s["title"], font=SONG(size)) > W - 200: size -= 4
@@ -131,7 +140,7 @@ def still_img(s, key="teaser"):
         y += GAP
     y += 110 - GAP
     d.text((100, y), "뒷이야기는 프로필에서", font=sans(42, 700), fill=WHITE); y += 62
-    d.text((100, y), "@goeirok_archive", font=SMALL, fill=GREY)
+    d.text((100, y), HANDLE, font=SMALL, fill=GREY)
     return img
 
 def main(src, out, key="teaser"):
@@ -159,10 +168,13 @@ def main(src, out, key="teaser"):
         hook = cap[2:3]
     reel_cap = "\n".join([f"「{s['title']}」", "", *hook, "",
                           "🕯 이 이야기의 결말은 프로필 피드에 있습니다.",
-                          "👉 @goeirok_archive",
+                          "👉 " + HANDLE,
                           "💬 당신이 겪은 기이한 일도 댓글로 들려주세요.", "", TAGS])
     open(os.path.join(out, "reel_caption.txt"), "w", encoding="utf-8").write(reel_cap + "\n")
     print("ok", f"{total}s")
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2], *(sys.argv[3:4]))
+    extra = sys.argv[3:]
+    if "ossac" in extra:
+        use_ossac(); extra = [a for a in extra if a != "ossac"]
+    main(sys.argv[1], sys.argv[2], *extra[:1])
